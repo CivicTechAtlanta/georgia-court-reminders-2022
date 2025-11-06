@@ -16,10 +16,12 @@ Events (Format: SMS)
 - Initial SMS to party(ies)
 - Party receiving SMS opts out
 - Party receives SMS for 7/3/1 days before court date
-
-Events (notification format agnostic)
-- Court Date rescheduled
+- Send Reminder SMS 7/3/1 days before court date
 
 Events (Format: Email)
 - Initial Email to party(ies)
 - Party receiving Email opts out
+- Send Reminder Email 7/3/1 days before court date
+
+Events (notification format agnostic)
+- Court Date rescheduled
