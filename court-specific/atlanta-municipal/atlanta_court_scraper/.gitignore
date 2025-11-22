@@ -49,3 +49,5 @@ Thumbs.db
 # Project specific
 results.json
 *.log
+case_data/*
+!case_data/.gitkeep
