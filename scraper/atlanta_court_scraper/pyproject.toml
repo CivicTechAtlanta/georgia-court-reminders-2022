@@ -1,0 +1,31 @@
+[project]
+name = "atlanta-court-scraper"
+version = "0.1.0"
+description = "Client for searching Atlanta Municipal Court cases via Benchmark system"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+    "beautifulsoup4>=4.12.0",
+]
+
+[project.scripts]
+atlanta-court = "atlanta_court.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.31.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "python-dotenv>=1.2.1",
+    "selenium>=4.32.0",
+    "vcrpy>=7.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atlanta_court"]
