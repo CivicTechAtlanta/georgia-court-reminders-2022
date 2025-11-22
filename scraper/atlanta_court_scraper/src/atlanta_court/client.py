@@ -810,3 +810,115 @@ class AtlantaMunicipalClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.close()
+
+
+def main(
+    search_term: str,
+    search_type: str = AtlantaMunicipalClient.SEARCH_TYPE_NAME,
+    base_url: Optional[str] = None,
+    court_types: Optional[List[str]] = None,
+    party_types: Optional[List[str]] = None,
+    divisions: Optional[List[str]] = None,
+    opened_from: Optional[str] = None,
+    opened_to: Optional[str] = None,
+    closed_from: Optional[str] = None,
+    closed_to: Optional[str] = None,
+    max_results: int = 50,
+    output_path: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Main function to search Atlanta Municipal Court cases and optionally save results.
+
+    This function provides a simple Python interface to search court cases without
+    needing to use the CLI.
+
+    Args:
+        search_term: The search term (e.g., "Last, First" for name searches,
+                     case number for case number searches)
+        search_type: Type of search - use AtlantaMunicipalClient.SEARCH_TYPE_NAME,
+                     SEARCH_TYPE_CASE_NUMBER, or SEARCH_TYPE_ATTORNEY
+        base_url: Base URL for the court system (defaults to Atlanta Municipal Court)
+        court_types: List of court type IDs (defaults to ['22', '2', '20', '21', '7', '10'])
+        party_types: List of party type IDs (defaults to ['1', '2', '3', '4', '5'])
+        divisions: List of division IDs (defaults to ['1'])
+        opened_from: Case opened from date (YYYY-MM-DD format)
+        opened_to: Case opened to date (YYYY-MM-DD format)
+        closed_from: Case closed from date (YYYY-MM-DD format)
+        closed_to: Case closed to date (YYYY-MM-DD format)
+        max_results: Maximum number of results to return (default: 50)
+        output_path: Optional path to save results as JSON file
+
+    Returns:
+        List of case dictionaries with case details
+
+    Example:
+        >>> from atlanta_court.client import main, AtlantaMunicipalClient
+        >>>
+        >>> # Search by name
+        >>> results = main(
+        ...     search_term="Doe, John",
+        ...     search_type=AtlantaMunicipalClient.SEARCH_TYPE_NAME,
+        ...     max_results=10
+        ... )
+        >>>
+        >>> # Search by case number
+        >>> results = main(
+        ...     search_term="25TR089095",
+        ...     search_type=AtlantaMunicipalClient.SEARCH_TYPE_CASE_NUMBER
+        ... )
+        >>>
+        >>> # Search with date range and save to file
+        >>> results = main(
+        ...     search_term="Smith, Jane",
+        ...     opened_from="2024-01-01",
+        ...     opened_to="2024-12-31",
+        ...     output_path="results.json"
+        ... )
+    """
+    import json
+    from pathlib import Path
+
+    client = AtlantaMunicipalClient(base_url=base_url)
+
+    try:
+        # Build optional parameters
+        search_kwargs = {}
+        if court_types is not None:
+            search_kwargs['court_types'] = court_types
+        if party_types is not None:
+            search_kwargs['party_types'] = party_types
+        if divisions is not None:
+            search_kwargs['divisions'] = divisions
+        if opened_from is not None:
+            search_kwargs['opened_from'] = opened_from
+        if opened_to is not None:
+            search_kwargs['opened_to'] = opened_to
+        if closed_from is not None:
+            search_kwargs['closed_from'] = closed_from
+        if closed_to is not None:
+            search_kwargs['closed_to'] = closed_to
+
+        # Execute search
+        logger.info(f"Searching for: {search_term}")
+        results = client.search_and_get_results(
+            search_term=search_term,
+            search_type=search_type,
+            max_results=max_results,
+            **search_kwargs
+        )
+
+        # Save to file if output path provided
+        if output_path:
+            output_file = Path(output_path)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_file, 'w') as f:
+                json.dump(results, f, indent=2)
+
+            logger.info(f"Results written to: {output_file}")
+
+        logger.info(f"Found {len(results)} results")
+        return results
+
+    finally:
+        client.close()

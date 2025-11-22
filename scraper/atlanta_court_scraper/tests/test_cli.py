@@ -114,14 +114,11 @@ class TestSearchCommand:
 
     def test_search_command_name_stdout(self, mock_args_name, capsys):
         """Test search command with name search and stdout output."""
-        # Setup mock client
-        with patch('atlanta_court.cli.AtlantaMunicipalClient') as mock_client_class:
-            mock_client = Mock()
-            mock_client.search_and_get_results.return_value = [
+        # Mock the client_main function
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = [
                 {'case': '2024-CR-001', 'name': 'Doe, John'}
             ]
-            mock_client_class.return_value = mock_client
-            mock_client_class.SEARCH_TYPE_NAME = 'Name'
 
             # Execute command
             result = search_command(mock_args_name)
@@ -129,11 +126,20 @@ class TestSearchCommand:
             # Verify success
             assert result == 0
 
-            # Verify client was called correctly
-            mock_client.search_and_get_results.assert_called_once_with(
+            # Verify client_main was called correctly
+            mock_client_main.assert_called_once_with(
                 search_term="Doe, John",
-                search_type='Name',
-                max_results=50
+                search_type=AtlantaMunicipalClient.SEARCH_TYPE_NAME,
+                base_url=None,
+                court_types=None,
+                party_types=None,
+                divisions=None,
+                opened_from=None,
+                opened_to=None,
+                closed_from=None,
+                closed_to=None,
+                max_results=50,
+                output_path=None
             )
 
             # Verify output to stdout
@@ -142,95 +148,90 @@ class TestSearchCommand:
             assert len(output_data) == 1
             assert output_data[0]['name'] == 'Doe, John'
 
-            # Verify client was closed
-            mock_client.close.assert_called_once()
-
     def test_search_command_case_number(self, mock_args_case_number):
         """Test search command with case number."""
-        with patch('atlanta_court.cli.AtlantaMunicipalClient') as mock_client_class:
-            mock_client = Mock()
-            mock_client.search_and_get_results.return_value = []
-            mock_client_class.return_value = mock_client
-            mock_client_class.SEARCH_TYPE_CASE_NUMBER = 'CaseNumber'
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = []
 
             result = search_command(mock_args_case_number)
 
             assert result == 0
-            mock_client.search_and_get_results.assert_called_once_with(
+            mock_client_main.assert_called_once_with(
                 search_term="2024-CR-12345",
-                search_type='CaseNumber',
-                max_results=50
+                search_type=AtlantaMunicipalClient.SEARCH_TYPE_CASE_NUMBER,
+                base_url=None,
+                court_types=None,
+                party_types=None,
+                divisions=None,
+                opened_from=None,
+                opened_to=None,
+                closed_from=None,
+                closed_to=None,
+                max_results=50,
+                output_path=None
             )
-            mock_client.close.assert_called_once()
 
     def test_search_command_attorney(self, mock_args_attorney):
         """Test search command with attorney search."""
-        with patch('atlanta_court.cli.AtlantaMunicipalClient') as mock_client_class:
-            mock_client = Mock()
-            mock_client.search_and_get_results.return_value = []
-            mock_client_class.return_value = mock_client
-            mock_client_class.SEARCH_TYPE_ATTORNEY = 'Attorney'
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = []
 
             result = search_command(mock_args_attorney)
 
             assert result == 0
-            mock_client.search_and_get_results.assert_called_once_with(
+            mock_client_main.assert_called_once_with(
                 search_term="Smith, Jane",
-                search_type='Attorney',
-                max_results=50
+                search_type=AtlantaMunicipalClient.SEARCH_TYPE_ATTORNEY,
+                base_url=None,
+                court_types=None,
+                party_types=None,
+                divisions=None,
+                opened_from=None,
+                opened_to=None,
+                closed_from=None,
+                closed_to=None,
+                max_results=50,
+                output_path=None
             )
-            mock_client.close.assert_called_once()
 
-    @patch('atlanta_court.cli.AtlantaMunicipalClient')
-    def test_search_command_with_file_output(self, mock_client_class, mock_args_name, tmp_path):
+    def test_search_command_with_file_output(self, mock_args_name, tmp_path):
         """Test search command with file output."""
-        mock_client = Mock()
-        mock_client.search_and_get_results.return_value = [
-            {'case': '2024-CR-001', 'name': 'Doe, John'}
-        ]
-        mock_client_class.return_value = mock_client
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = [
+                {'case': '2024-CR-001', 'name': 'Doe, John'}
+            ]
 
-        # Set output file
-        output_file = tmp_path / "results.json"
-        mock_args_name.output = str(output_file)
+            # Set output file
+            output_file = tmp_path / "results.json"
+            mock_args_name.output = str(output_file)
 
-        result = search_command(mock_args_name)
+            result = search_command(mock_args_name)
 
-        assert result == 0
+            assert result == 0
 
-        # Verify file was created and contains correct data
-        assert output_file.exists()
-        with open(output_file) as f:
-            data = json.load(f)
-        assert len(data) == 1
-        assert data[0]['name'] == 'Doe, John'
+            # Verify client_main was called with output_path
+            mock_client_main.assert_called_once()
+            assert mock_client_main.call_args[1]['output_path'] == str(output_file)
 
-        mock_client.close.assert_called_once()
-
-    @patch('atlanta_court.cli.AtlantaMunicipalClient')
-    def test_search_command_with_nested_output_path(self, mock_client_class, mock_args_name, tmp_path):
+    def test_search_command_with_nested_output_path(self, mock_args_name, tmp_path):
         """Test search command creates parent directories for output."""
-        mock_client = Mock()
-        mock_client.search_and_get_results.return_value = []
-        mock_client_class.return_value = mock_client
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = []
 
-        # Set nested output path
-        output_file = tmp_path / "nested" / "dir" / "results.json"
-        mock_args_name.output = str(output_file)
+            # Set nested output path
+            output_file = tmp_path / "nested" / "dir" / "results.json"
+            mock_args_name.output = str(output_file)
 
-        result = search_command(mock_args_name)
+            result = search_command(mock_args_name)
 
-        assert result == 0
-        assert output_file.exists()
-        mock_client.close.assert_called_once()
+            assert result == 0
+            # Verify client_main was called with the output_path
+            assert mock_client_main.call_args[1]['output_path'] == str(output_file)
 
     def test_search_command_with_optional_params(self, mock_args_name):
         """Test search command with optional parameters."""
-        with patch('atlanta_court.cli.AtlantaMunicipalClient') as mock_client_class:
-            mock_client = Mock()
-            mock_client.search_and_get_results.return_value = []
-            mock_client_class.return_value = mock_client
-            mock_client_class.SEARCH_TYPE_NAME = 'Name'
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = []
 
             # Set optional parameters
             mock_args_name.court_types = "1,2,3"
@@ -244,50 +245,44 @@ class TestSearchCommand:
             result = search_command(mock_args_name)
 
             assert result == 0
-            mock_client.search_and_get_results.assert_called_once_with(
+            mock_client_main.assert_called_once_with(
                 search_term="Doe, John",
-                search_type='Name',
-                max_results=50,
+                search_type=AtlantaMunicipalClient.SEARCH_TYPE_NAME,
+                base_url=None,
                 court_types=['1', '2', '3'],
                 party_types=['4', '5'],
                 divisions=['1'],
                 opened_from='2024-01-01',
                 opened_to='2024-12-31',
                 closed_from='2024-01-01',
-                closed_to='2024-12-31'
+                closed_to='2024-12-31',
+                max_results=50,
+                output_path=None
             )
-            mock_client.close.assert_called_once()
 
-    @patch('atlanta_court.cli.AtlantaMunicipalClient')
-    def test_search_command_with_custom_base_url(self, mock_client_class, mock_args_name):
+    def test_search_command_with_custom_base_url(self, mock_args_name):
         """Test search command with custom base URL."""
-        mock_client = Mock()
-        mock_client.search_and_get_results.return_value = []
-        mock_client_class.return_value = mock_client
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.return_value = []
 
-        custom_url = "https://custom.example.com"
-        mock_args_name.base_url = custom_url
+            custom_url = "https://custom.example.com"
+            mock_args_name.base_url = custom_url
 
-        result = search_command(mock_args_name)
+            result = search_command(mock_args_name)
 
-        assert result == 0
-        mock_client_class.assert_called_once_with(base_url=custom_url)
-        mock_client.close.assert_called_once()
+            assert result == 0
+            # Verify base_url was passed to client_main
+            assert mock_client_main.call_args[1]['base_url'] == custom_url
 
-    @patch('atlanta_court.cli.AtlantaMunicipalClient')
-    def test_search_command_exception_handling(self, mock_client_class, mock_args_name):
+    def test_search_command_exception_handling(self, mock_args_name):
         """Test search command handles exceptions."""
-        mock_client = Mock()
-        mock_client.search_and_get_results.side_effect = Exception("Search failed")
-        mock_client_class.return_value = mock_client
+        with patch('atlanta_court.cli.client_main') as mock_client_main:
+            mock_client_main.side_effect = Exception("Search failed")
 
-        result = search_command(mock_args_name)
+            result = search_command(mock_args_name)
 
-        # Should return 1 for error
-        assert result == 1
-
-        # Client should still be closed
-        mock_client.close.assert_called_once()
+            # Should return 1 for error
+            assert result == 1
 
 
 class TestMain:

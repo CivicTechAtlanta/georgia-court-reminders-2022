@@ -7,12 +7,10 @@ import json
 import logging
 import os
 import sys
-from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 
-from .client import AtlantaMunicipalClient
+from .client import AtlantaMunicipalClient, main as client_main
 
 
 def setup_logging(level: str = "INFO"):
@@ -27,8 +25,6 @@ def setup_logging(level: str = "INFO"):
 
 def search_command(args):
     """Execute a search command."""
-    client = AtlantaMunicipalClient(base_url=args.base_url)
-    
     try:
         # Determine search type
         search_type = AtlantaMunicipalClient.SEARCH_TYPE_NAME
@@ -36,59 +32,40 @@ def search_command(args):
             search_type = AtlantaMunicipalClient.SEARCH_TYPE_CASE_NUMBER
         elif args.attorney:
             search_type = AtlantaMunicipalClient.SEARCH_TYPE_ATTORNEY
-        
+
         # Get the search term
         search_term = args.name or args.case_number or args.attorney
-        
+
         # Build optional parameters
-        search_kwargs = {}
-        if args.court_types:
-            search_kwargs['court_types'] = args.court_types.split(',')
-        if args.party_types:
-            search_kwargs['party_types'] = args.party_types.split(',')
-        if args.divisions:
-            search_kwargs['divisions'] = args.divisions.split(',')
-        if args.opened_from:
-            search_kwargs['opened_from'] = args.opened_from
-        if args.opened_to:
-            search_kwargs['opened_to'] = args.opened_to
-        if args.closed_from:
-            search_kwargs['closed_from'] = args.closed_from
-        if args.closed_to:
-            search_kwargs['closed_to'] = args.closed_to
-        
-        # Execute search
-        logging.info(f"Searching for: {search_term}")
-        results = client.search_and_get_results(
+        court_types = args.court_types.split(',') if args.court_types else None
+        party_types = args.party_types.split(',') if args.party_types else None
+        divisions = args.divisions.split(',') if args.divisions else None
+
+        # Call the main function from client
+        results = client_main(
             search_term=search_term,
             search_type=search_type,
+            base_url=args.base_url,
+            court_types=court_types,
+            party_types=party_types,
+            divisions=divisions,
+            opened_from=args.opened_from,
+            opened_to=args.opened_to,
+            closed_from=args.closed_from,
+            closed_to=args.closed_to,
             max_results=args.max_results,
-            **search_kwargs
+            output_path=args.output
         )
-        
-        # Output results
-        if args.output:
-            output_path = Path(args.output)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(output_path, 'w') as f:
-                json.dump(results, f, indent=2)
-            
-            logging.info(f"Results written to: {output_path}")
-        else:
-            # Print to stdout
+
+        # Print to stdout if no output file specified
+        if not args.output:
             print(json.dumps(results, indent=2))
-        
-        logging.info(f"Found {len(results)} results")
-        
+
         return 0
-        
+
     except Exception as e:
         logging.error(f"Search failed: {e}", exc_info=True)
         return 1
-    
-    finally:
-        client.close()
 
 
 def main():
