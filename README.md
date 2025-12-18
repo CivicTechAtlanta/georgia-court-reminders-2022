@@ -1,5 +1,5 @@
-> [!WARNING]
-> :construction: This repo & project are getting revamped in Fall 2025 - this was created as a Proof of Concept, and the service is not currently running or confirmed to be working as-is.  More to come.
+> [!NOTE]
+> Archiving this repo Dec 17, 2025 - we are moving to a new repo within CivicTechAtlanta org as we revisit this in 2025
 
 # Georgia CourtBot
 
